@@ -127,7 +127,7 @@ try
         var clientRequest = new HttpRequestMessage(HttpMethod.Get, url);
         foreach(var hk in request.Headers)
         {
-            if (hk.Key.EndsWith(":"))
+            if (hk.Key.EndsWith(":") || hk.Key.Equals("host", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
             }
