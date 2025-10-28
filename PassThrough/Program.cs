@@ -71,21 +71,23 @@ try
 
     // When using IHttpForwarder for direct forwarding you are responsible for routing, destination discovery, load balancing, affinity, etc..
     // For an alternate example that includes those features see BasicYarpSample.
-    app.Map("/{**catch-all}", async (HttpContext httpContext, IHttpForwarder forwarder) =>
+    app.Map("/api/emails/d/{ei}/{emailID}/{destinationHost}/{**catchAll}", async (HttpContext httpContext, IHttpForwarder forwarder) =>
     {
+
+        var routes = httpContext.Request.RouteValues.GetValueOrDefault("destinationHost");
+        var all = httpContext.Request.RouteValues.GetValueOrDefault("catchAll", "")!;
+
         var error = await forwarder.SendAsync(httpContext, "http://" + httpContext.Request.Headers.Host, httpClient, requestOptions,
             (context, proxyRequest) =>
             {
                 // Customize the query string:
                 var queryContext = new QueryTransformContext(context.Request);
-                var ip = context.Connection.RemoteIpAddress;
-                if (ip != null)
-                {
-                    proxyRequest.Headers.TryAddWithoutValidation("x-forwarded-for", ip.ToString());
-                }
 
                 // Assign the custom uri. Be careful about extra slashes when concatenating here. RequestUtilities.MakeDestinationAddress is a safe default.
-                proxyRequest.RequestUri = RequestUtilities.MakeDestinationAddress("http://" + proxyRequest.Headers.Host, context.Request.Path, queryContext.QueryString);
+                proxyRequest.RequestUri = RequestUtilities.MakeDestinationAddress(
+                    "http://" + proxyRequest.Headers.Host,
+                    all.ToString(),
+                    queryContext.QueryString);
                 proxyRequest.Version = HttpVersion.Version11;
                 return default;
             });
