@@ -108,10 +108,12 @@ try
     // For an alternate example that includes those features see BasicYarpSample.
     app.Map("/api/emails/d/{ei}/{emailID}/{destinationHost}/{**catchAll}", async (HttpContext httpContext) =>
     {
-        var destinationHost = httpContext.Request.RouteValues.GetValueOrDefault("destinationHost")!.ToString();
-        var all = httpContext.Request.RouteValues.GetValueOrDefault("catchAll", "")!;
+        var request = httpContext.Request;
 
-        var queryString = httpContext.Request.QueryString;
+        var destinationHost = request.RouteValues.GetValueOrDefault("destinationHost")!.ToString();
+        var all = request.RouteValues.GetValueOrDefault("catchAll", "")!;
+
+        var queryString = request.QueryString;
 
         var url = RequestUtilities.MakeDestinationAddress(
                     "https://" + destinationHost,
@@ -122,8 +124,11 @@ try
 
         var response = httpContext.Response;
 
+        var clientRequest = new HttpRequestMessage(HttpMethod.Get, url);
+        clientRequest.Headers.TryAddWithoutValidation("Accept", request.Headers.Accept.AsReadOnly());
+        clientRequest.Headers.TryAddWithoutValidation("User-Agent", request.Headers.UserAgent.AsReadOnly());
 
-        using var rs = await httpClient.GetAsync(url);
+        using var rs = await httpClient.SendAsync(clientRequest, httpContext.RequestAborted);
         response.StatusCode = (int)rs.StatusCode;
         if (!rs.IsSuccessStatusCode)
         {
