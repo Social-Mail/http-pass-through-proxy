@@ -1,0 +1,21 @@
+version: '3.4'
+name: social-mail-external
+services:
+  pass-through-proxy:
+    image: pass-through-proxy
+    container_name: pass-through-proxy
+    build:
+      context: ../
+    environment:
+      - PORT=8080
+    networks:
+      - proxy_network
+    ports:
+      - 8080:8080
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
+
+networks:
+  proxy_network:
+    driver: bridge

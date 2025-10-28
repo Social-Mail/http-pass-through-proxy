@@ -54,15 +54,17 @@ try
     var app = builder.Build();
 
     // Configure our own HttpMessageInvoker for outbound calls for proxy operations
-    var httpClient = new HttpMessageInvoker(new SocketsHttpHandler
+    var options = new SocketsHttpHandler
     {
         UseProxy = false,
-        AllowAutoRedirect = false,
+        AllowAutoRedirect = true,
         AutomaticDecompression = DecompressionMethods.None,
         UseCookies = false,
         ActivityHeadersPropagator = new ReverseProxyPropagator(DistributedContextPropagator.Current),
         ConnectTimeout = TimeSpan.FromSeconds(15),
-    });
+    };
+    options.SslOptions.RemoteCertificateValidationCallback = (a, b, c, d) => true;
+    var httpClient = new HttpMessageInvoker(options);
 
     // Setup our own request transform class
     var requestOptions = new ForwarderRequestConfig { ActivityTimeout = TimeSpan.FromSeconds(100) };
@@ -74,10 +76,10 @@ try
     app.Map("/api/emails/d/{ei}/{emailID}/{destinationHost}/{**catchAll}", async (HttpContext httpContext, IHttpForwarder forwarder) =>
     {
 
-        var routes = httpContext.Request.RouteValues.GetValueOrDefault("destinationHost");
+        var destinationHost = httpContext.Request.RouteValues.GetValueOrDefault("destinationHost")!.ToString();
         var all = httpContext.Request.RouteValues.GetValueOrDefault("catchAll", "")!;
 
-        var error = await forwarder.SendAsync(httpContext, "http://" + httpContext.Request.Headers.Host, httpClient, requestOptions,
+        var error = await forwarder.SendAsync(httpContext, "https://" + destinationHost, httpClient, requestOptions,
             (context, proxyRequest) =>
             {
                 // Customize the query string:
@@ -85,10 +87,11 @@ try
 
                 // Assign the custom uri. Be careful about extra slashes when concatenating here. RequestUtilities.MakeDestinationAddress is a safe default.
                 proxyRequest.RequestUri = RequestUtilities.MakeDestinationAddress(
-                    "http://" + proxyRequest.Headers.Host,
-                    all.ToString(),
+                    "https://" + destinationHost,
+                    $"/{all}",
                     queryContext.QueryString);
-                proxyRequest.Version = HttpVersion.Version11;
+                proxyRequest.Headers.Host = destinationHost;
+                Console.WriteLine($"New-Request: {proxyRequest.RequestUri}");
                 return default;
             });
 
