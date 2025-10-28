@@ -49,7 +49,7 @@ try
         });
     });
 
-    builder.Services.AddHttpForwarder();
+    // builder.Services.AddHttpForwarder();
 
     builder.Services.AddCors((o) => o.AddDefaultPolicy((p) => p
         .AllowAnyOrigin()
@@ -67,7 +67,7 @@ try
         AllowAutoRedirect = true,
         AutomaticDecompression = DecompressionMethods.None,
         UseCookies = false,
-        ActivityHeadersPropagator = new ReverseProxyPropagator(DistributedContextPropagator.Current),
+        // ActivityHeadersPropagator = new ReverseProxyPropagator(DistributedContextPropagator.Current),
         ConnectTimeout = TimeSpan.FromSeconds(15),
         PooledConnectionLifetime = TimeSpan.FromMinutes(15),
         ConnectCallback = async (context, cancellationToken) =>
@@ -96,7 +96,7 @@ try
         }
     };
     options.SslOptions.RemoteCertificateValidationCallback = (a, b, c, d) => true;
-    var httpClient = new HttpMessageInvoker(options);
+    var httpClient = new HttpClient(options);
 
     // Setup our own request transform class
     var requestOptions = new ForwarderRequestConfig { ActivityTimeout = TimeSpan.FromSeconds(100) };
@@ -107,39 +107,73 @@ try
     // For an alternate example that includes those features see BasicYarpSample.
     app.Map("/api/emails/d/{ei}/{emailID}/{destinationHost}/{**catchAll}", async (HttpContext httpContext, IHttpForwarder forwarder) =>
     {
-
         var destinationHost = httpContext.Request.RouteValues.GetValueOrDefault("destinationHost")!.ToString();
         var all = httpContext.Request.RouteValues.GetValueOrDefault("catchAll", "")!;
 
-        var error = await forwarder.SendAsync(httpContext, "https://" + destinationHost, httpClient, requestOptions,
-            (context, proxyRequest) =>
-            {
-                // Customize the query string:
-                var queryContext = new QueryTransformContext(context.Request);
+        var queryString = httpContext.Request.QueryString;
 
-                // Assign the custom uri. Be careful about extra slashes when concatenating here. RequestUtilities.MakeDestinationAddress is a safe default.
-                proxyRequest.RequestUri = RequestUtilities.MakeDestinationAddress(
+        var url = RequestUtilities.MakeDestinationAddress(
                     "https://" + destinationHost,
                     $"/{all}",
-                    queryContext.QueryString);
-                proxyRequest.Headers.Host = destinationHost;
-                Console.WriteLine($"New-Request: {proxyRequest.RequestUri}");
-                return default;
-            });
+                    queryString);
 
-        // Check if the proxy operation was successful
-        if (error != ForwarderError.None)
+        var response = httpContext.Response;
+
+        using var rs = await httpClient.GetAsync(url);
+        response.StatusCode = (int)rs.StatusCode;
+        if (!rs.IsSuccessStatusCode)
         {
-            var errorFeature = httpContext.Features.Get<IForwarderErrorFeature>();
-            if (errorFeature != null)
+            // send error as it is but log
+            Console.WriteLine($"Status {rs.StatusCode} https://{destinationHost}/${all}");
+        }
+
+        foreach(var key in rs.Headers) {
+            foreach(var v in key.Value)
             {
-                var exception = errorFeature.Exception;
-                if (exception != null)
-                {
-                    Console.WriteLine(exception.ToString());
-                }
+                response.Headers.TryAdd(key.Key, v);
             }
         }
+
+        foreach (var key in rs.Content.Headers)
+        {
+            foreach (var v in key.Value)
+            {
+                response.Headers.TryAdd(key.Key, v);
+            }
+        }
+
+        using var s = await rs.Content.ReadAsStreamAsync();
+        await s.CopyToAsync(response.Body);
+
+        //var error = await forwarder.SendAsync(httpContext, "https://" + destinationHost, httpClient, requestOptions,
+        //    (context, proxyRequest) =>
+        //    {
+        //        // Customize the query string:
+        //        var queryContext = new QueryTransformContext(context.Request);
+
+        //        // Assign the custom uri. Be careful about extra slashes when concatenating here. RequestUtilities.MakeDestinationAddress is a safe default.
+        //        proxyRequest.RequestUri = RequestUtilities.MakeDestinationAddress(
+        //            "https://" + destinationHost,
+        //            $"/{all}",
+        //            queryContext.QueryString);
+        //        proxyRequest.Headers.Host = destinationHost;
+        //        Console.WriteLine($"New-Request: {proxyRequest.RequestUri}");
+        //        return default;
+        //    });
+
+        // Check if the proxy operation was successful
+        //if (error != ForwarderError.None)
+        //{
+        //    var errorFeature = httpContext.Features.Get<IForwarderErrorFeature>();
+        //    if (errorFeature != null)
+        //    {
+        //        var exception = errorFeature.Exception;
+        //        if (exception != null)
+        //        {
+        //            Console.WriteLine(exception.ToString());
+        //        }
+        //    }
+        //}
     });
 
     app.Run();
