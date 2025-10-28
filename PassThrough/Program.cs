@@ -125,8 +125,14 @@ try
         var response = httpContext.Response;
 
         var clientRequest = new HttpRequestMessage(HttpMethod.Get, url);
-        clientRequest.Headers.TryAddWithoutValidation("Accept", request.Headers.Accept.AsReadOnly());
-        clientRequest.Headers.TryAddWithoutValidation("User-Agent", request.Headers.UserAgent.AsReadOnly());
+        foreach(var hk in request.Headers)
+        {
+            if (hk.Key.EndsWith(":"))
+            {
+                continue;
+            }
+            clientRequest.Headers.TryAddWithoutValidation(hk.Key, hk.Value.AsReadOnly());
+        }
 
         using var rs = await httpClient.SendAsync(clientRequest, httpContext.RequestAborted);
         response.StatusCode = (int)rs.StatusCode;
