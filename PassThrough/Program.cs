@@ -51,8 +51,15 @@ try
 
     builder.Services.AddHttpForwarder();
 
+    builder.Services.AddCors((o) => o.AddDefaultPolicy((p) => p
+        .AllowAnyOrigin()
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+    ));
+
     var app = builder.Build();
 
+    app.UseCors();
     // Configure our own HttpMessageInvoker for outbound calls for proxy operations
     var options = new SocketsHttpHandler
     {
