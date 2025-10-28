@@ -20,7 +20,8 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using Yarp.ReverseProxy.Forwarder;
-using Yarp.ReverseProxy.Transforms;
+// using Yarp.ReverseProxy.Forwarder;
+// using Yarp.ReverseProxy.Transforms;
 
 try
 {
@@ -99,13 +100,13 @@ try
     var httpClient = new HttpClient(options);
 
     // Setup our own request transform class
-    var requestOptions = new ForwarderRequestConfig { ActivityTimeout = TimeSpan.FromSeconds(100) };
+    // var requestOptions = new ForwarderRequestConfig { ActivityTimeout = TimeSpan.FromSeconds(100) };
 
     app.UseRouting();
 
     // When using IHttpForwarder for direct forwarding you are responsible for routing, destination discovery, load balancing, affinity, etc..
     // For an alternate example that includes those features see BasicYarpSample.
-    app.Map("/api/emails/d/{ei}/{emailID}/{destinationHost}/{**catchAll}", async (HttpContext httpContext, IHttpForwarder forwarder) =>
+    app.Map("/api/emails/d/{ei}/{emailID}/{destinationHost}/{**catchAll}", async (HttpContext httpContext) =>
     {
         var destinationHost = httpContext.Request.RouteValues.GetValueOrDefault("destinationHost")!.ToString();
         var all = httpContext.Request.RouteValues.GetValueOrDefault("catchAll", "")!;
@@ -117,7 +118,10 @@ try
                     $"/{all}",
                     queryString);
 
+        // Console.WriteLine($"Get: {url}");
+
         var response = httpContext.Response;
+
 
         using var rs = await httpClient.GetAsync(url);
         response.StatusCode = (int)rs.StatusCode;
