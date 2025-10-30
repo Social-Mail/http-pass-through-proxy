@@ -162,6 +162,8 @@ try
         var s = await rs.Content.ReadAsStreamAsync();
         await s.CopyToAsync(response.Body);
 
+        await s.FlushAsync();
+
         //var error = await forwarder.SendAsync(httpContext, "https://" + destinationHost, httpClient, requestOptions,
         //    (context, proxyRequest) =>
         //    {
