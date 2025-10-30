@@ -145,6 +145,10 @@ try
         foreach(var key in rs.Headers) {
             foreach(var v in key.Value)
             {
+                if (key.Key.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
                 response.Headers.TryAdd(key.Key, v);
             }
         }
@@ -153,6 +157,10 @@ try
         {
             foreach (var v in key.Value)
             {
+                if (key.Key.Equals("Transfer-Encoding", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
                 response.Headers.TryAdd(key.Key, v);
             }
         }
