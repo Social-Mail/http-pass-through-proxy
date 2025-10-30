@@ -159,7 +159,7 @@ try
 
         response.Headers.CacheControl = "public, max-age=2592000, immutable";
 
-        using var s = await rs.Content.ReadAsStreamAsync();
+        var s = await rs.Content.ReadAsStreamAsync();
         await s.CopyToAsync(response.Body);
 
         //var error = await forwarder.SendAsync(httpContext, "https://" + destinationHost, httpClient, requestOptions,
