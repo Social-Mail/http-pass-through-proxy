@@ -50,17 +50,9 @@ try
         });
     });
 
-    // builder.Services.AddHttpForwarder();
-
-    builder.Services.AddCors((o) => o.AddDefaultPolicy((p) => p
-        .AllowAnyOrigin()
-        .AllowAnyMethod()
-        .AllowAnyHeader()
-    ));
 
     var app = builder.Build();
 
-    app.UseCors();
     // Configure our own HttpMessageInvoker for outbound calls for proxy operations
     var options = new SocketsHttpHandler
     {
@@ -168,6 +160,9 @@ try
             }
         }
 
+        response.Headers.AccessControlAllowOrigin = "*";
+        response.Headers.AccessControlAllowMethods = "GET, HEAD";
+        response.Headers.AccessControlMaxAge = "86400";
 
         var s = await rs.Content.ReadAsStreamAsync();
         await s.CopyToAsync(response.Body);
