@@ -140,6 +140,9 @@ try
         {
             // send error as it is but log
             Console.WriteLine($"Status {rs.StatusCode} https://{destinationHost}/${all}");
+            response.Headers.CacheControl = "public, max-age=60";
+        } else {
+            response.Headers.CacheControl = "public, max-age=2592000, immutable";
         }
 
         foreach(var key in rs.Headers) {
@@ -165,7 +168,6 @@ try
             }
         }
 
-        response.Headers.CacheControl = "public, max-age=2592000, immutable";
 
         var s = await rs.Content.ReadAsStreamAsync();
         await s.CopyToAsync(response.Body);
