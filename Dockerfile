@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0-alpine AS base
+FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS base
 
 RUN apk add libmsquic
 RUN apk add --upgrade --no-cache ca-certificates && update-ca-certificates
