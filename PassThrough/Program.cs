@@ -63,30 +63,30 @@ try
         // ActivityHeadersPropagator = new ReverseProxyPropagator(DistributedContextPropagator.Current),
         ConnectTimeout = TimeSpan.FromSeconds(15),
         PooledConnectionLifetime = TimeSpan.FromMinutes(15),
-        ConnectCallback = async (context, cancellationToken) =>
-        {
-            var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
-            try
-            {
-                await socket.ConnectAsync(context.DnsEndPoint, cancellationToken);
+        //ConnectCallback = async (context, cancellationToken) =>
+        //{
+        //    var socket = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };
+        //    try
+        //    {
+        //        await socket.ConnectAsync(context.DnsEndPoint, cancellationToken);
 
-                var sslStream = new SslStream(new NetworkStream(socket, ownsSocket: true));
+        //        var sslStream = new SslStream(new NetworkStream(socket, ownsSocket: true));
 
-                // When using HTTP/2, you must also keep in mind to set options like ApplicationProtocols
-                await sslStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
-                {
-                    TargetHost = context.DnsEndPoint.Host,
+        //        // When using HTTP/2, you must also keep in mind to set options like ApplicationProtocols
+        //        await sslStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions
+        //        {
+        //            TargetHost = context.DnsEndPoint.Host,
 
-                }, cancellationToken);
+        //        }, cancellationToken);
 
-                return sslStream;
-            }
-            catch
-            {
-                socket.Dispose();
-                throw;
-            }
-        }
+        //        return sslStream;
+        //    }
+        //    catch
+        //    {
+        //        socket.Dispose();
+        //        throw;
+        //    }
+        //}
     };
     options.SslOptions.RemoteCertificateValidationCallback = (a, b, c, d) => true;
     var httpClient = new HttpClient(options);
